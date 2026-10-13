@@ -1,6 +1,24 @@
-// 9단계에서 학생이 채우는 탐지 함수입니다. 이 기본값은 어떤 접속도 회수하지 않습니다.
-// 반 엔진이 검증한 사건만 전달해야 하며, 브라우저가 보낸 사용자 번호는 받지 않습니다.
+// Only consume fields supplied by the stage-9 verified-event contract.
+// No event copies, raw tokens, note bodies, names or logging are retained.
+const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
 export function detect(events) {
   if (!Array.isArray(events)) throw new TypeError('invalid_detection_events');
+
+  // Contract: { at, method, identity: { sub } }. Device ID and prior
+  // decision are not supplied; do not fabricate these values.
+  for (const event of events) {
+    if (!isRecord(event) || !isRecord(event.identity)
+      || typeof event.identity.sub !== 'string'
+      || !/^[a-z0-9_-]{1,100}$/i.test(event.identity.sub)
+      || typeof event.method !== 'string'
+      || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(event.method)
+      || typeof event.at !== 'string'
+      || !Number.isFinite(Date.parse(event.at))) {
+      throw new TypeError('invalid_detection_event');
+    }
+    // Ignore any extra fields, including client-supplied identity metadata,
+    // headers, note contents, and authorization strings.
+  }
   return { action: 'observe' };
 }
