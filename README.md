@@ -43,6 +43,13 @@
 - 실행·검증: Vercel Production 배포, 실제 A/B 계정 격리 테스트와 `npm run bundle`은 별도 확인이 필요합니다. `bundle-notes.json` 및 `artifacts/submission.json`은 커밋 대상에서 제외합니다.
 - 재실행: 최신 `main`을 받은 뒤 `npm run build -- --local`로 정적 파일을 검사합니다. `npm run bundle`에는 Git 저장소의 깨끗한 작업 트리, 로컬 전용 `bundle-notes.json`과 단계별 실제 점검 기록이 필요합니다.
 
+## 10단계 복구 경로 검증 보강 (S10_BACKUP_UNVERIFIED)
+- **복구 서비스와 경로:** `restore-note`, `POST /api/restore-note`. `aleph.config.json.restoreRoute`에 경로를 등록했습니다. 일반 사용자용 `allowedRoutes`에는 넣지 않습니다.
+- **시험 B 계정 식별:** 이메일 주소를 소스에 넣지 않고 운영 엔진에서 검증된 가상 `identity: b` 및 `userId`와 사본 `owner_id`가 동일할 때만 수락합니다. 이메일만으로 계정 B라는 신원을 부여하지 않습니다.
+- **검증된 사본:** 서버 전용 `RESTORE_B_NOTE_SNAPSHOT`은 가상 한 건의 `{id,owner_id,title,content,contentSha256,version,verified}`를 포함해야 합니다. 별도로 승인한 `RESTORE_B_SNAPSHOT_SHA256`과 `RESTORE_B_VERIFIED_VERSION`은 비밀 입력란에 둡니다. 버전·사본 전체 SHA-256·내용 SHA-256 불일치, 사본 누락 또는 미검증이면 쓰기를 중단합니다.
+- **실행 전 표시:** 사본 `version`과 `id`, `ownerMatched`, 내용 해시, 복원 대상 필드(`title`, `content`)는 시험 요청자가 사전 점검해야 합니다. 요청 본문에는 `{id,contentSha256,version}`을 지정하며 이외 정보·실제 메모 내용은 출력하지 않습니다.
+- **재검증:** DB 쓰기 직전에 서버에서 비공개 사본을 다시 읽어 검증하고, 대상 ID와 소유자만 갱신합니다. 다른 메모와 감사 테이블을 건드리지 않습니다. 별도 시험 DB에 대한 실제 실행과 Vercel 배포, 심판 재평가 결과는 **미실행·미검증**입니다.
+
 ## 10단계 저장점 (2026-10-14)
 - **시험 정책 미리보기:** `scripts/preview-policy-restore.mjs`는 검증 플래그·시각·SHA-256을 확인해 안전 정책 사본과 시험 정책의 차이만 보여 줍니다. 안전 사본의 독립적 승인·침해 전 출처는 별도 확인이 필요합니다.
 - **시험 정책 복원:** `scripts/restore-test-policy.mjs`는 미리보기에서 확인한 버전·해시를 재확인하고 별도 `test-policy.json`만 수정하도록 구현했습니다. 운영 정책, 다른 서비스 규칙, 감사 기록은 변경하지 않는 것이 설계 목적이며 실측은 미실행입니다.

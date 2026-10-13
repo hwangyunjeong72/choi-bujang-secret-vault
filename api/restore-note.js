@@ -48,10 +48,10 @@ export default async function handler(req,res) {
       || !same(sha(snapshot.content),snapshot.contentSha256)
       || snapshot.owner_id !== identity.userId)
     return error(res,403,'SNAPSHOT_VALIDATION_FAILED');
-  // Request selects only an ID plus its expected content hash.
+  // Re-parse the protected backup immediately before any write; no client-provided\n  // backup/verification flags are trusted. The fixture must carry a verified\n  // revision and an independently pinned SHA-256 of the full snapshot.\n  const trustedDigest=process.env.RESTORE_B_SNAPSHOT_SHA256;\n  const verifiedVersion=process.env.RESTORE_B_VERIFIED_VERSION;\n  if (!HEX.test(trustedDigest || '') || typeof verifiedVersion !== 'string'\n      || !/^[A-Za-z0-9._-]{1,80}$/.test(verifiedVersion)\n      || snapshot.version !== verifiedVersion\n      || snapshot.verified !== true\n      || !same(sha(JSON.stringify({id:snapshot.id,owner_id:snapshot.owner_id,\n        title:snapshot.title,content:snapshot.content,contentSha256:snapshot.contentSha256,\n        version:snapshot.version})),trustedDigest))\n    return error(res,403,'BACKUP_UNVERIFIED');\n  // Request selects only an ID plus its expected content hash.
   if (!payload || typeof payload!=='object' || Array.isArray(payload)
-      || Object.keys(payload).sort().join(',')!=='contentSha256,id'
-      || payload.id!==snapshot.id || !same(payload.contentSha256,snapshot.contentSha256))
+      || Object.keys(payload).sort().join(',')!=='contentSha256,id,version'
+      || payload.id!==snapshot.id || payload.version!==verifiedVersion\n      || !same(payload.contentSha256,snapshot.contentSha256))
     return error(res,403,'RESTORE_TARGET_MISMATCH');
   let project;
   try {
@@ -76,7 +76,7 @@ export default async function handler(req,res) {
     // Do not take ownership of a different user's note or overwrite arbitrary rows.
     if (rows[0].id!==snapshot.id || rows[0].owner_id!==identity.userId)
       return error(res,403,'OWNER_MISMATCH');
-    // CAS via original title/content prevents a blind overwrite of a concurrently changed row.
+    // Re-read and revalidate the protected snapshot and pinned digest immediately\n    // before writing. Failure stops the restore without modifying any record.\n    let fresh;\n    try { fresh=JSON.parse(process.env.RESTORE_B_NOTE_SNAPSHOT || ''); }\n    catch { return error(res,403,'BACKUP_UNVERIFIED'); }\n    if (!fresh || fresh.version!==verifiedVersion || fresh.verified!==true\n        || !same(sha(JSON.stringify({id:fresh.id,owner_id:fresh.owner_id,\n          title:fresh.title,content:fresh.content,contentSha256:fresh.contentSha256,\n          version:fresh.version})),trustedDigest)\n        || fresh.id!==snapshot.id || fresh.owner_id!==identity.userId\n        || !same(sha(fresh.content || ''),fresh.contentSha256))\n      return error(res,403,'BACKUP_UNVERIFIED');\n    // CAS via original title/content prevents a blind overwrite of a concurrently changed row.
     const current=rows[0];
     const update=new URL(endpoint);
     update.searchParams.set('title','eq.'+current.title);
@@ -89,7 +89,7 @@ export default async function handler(req,res) {
         || result[0].id!==snapshot.id || result[0].owner_id!==snapshot.owner_id
         || !same(sha(result[0].content),snapshot.contentSha256))
       return error(res,409,'RESTORE_VERIFY_FAILED');
-    return res.status(200).json({restored:true,id:snapshot.id,ownerMatched:true,
+    return res.status(200).json({restored:true,version:verifiedVersion,id:snapshot.id,ownerMatched:true,
       contentSha256:snapshot.contentSha256,changedCount:1});
   } catch { return error(res,502,'RESTORE_UNAVAILABLE'); }
 }
