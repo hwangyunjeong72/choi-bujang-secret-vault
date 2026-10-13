@@ -30,6 +30,10 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'LOGIN_VERIFICATION_UNAVAILABLE' });
   }
   if (!identity) return res.status(401).json({ error: 'INVALID_LOGIN' });
+  // Trust only the verified token subject. There is no verified instructor role
+  // or instructor-managed storage contract yet: do not infer one from headers,
+  // browser menus, request bodies, or a judge identity.
+  if (!UUID.test(identity.userId)) return res.status(403).json({ error: 'ACCESS_DENIED' });
   // Only verified userId is accepted; client-supplied userId/role are ignored.
 
   const segments = new URL(req.url, 'https://local.invalid').pathname.split('/').filter(Boolean);
@@ -67,6 +71,8 @@ export default async function handler(req, res) {
     if (project.protocol !== 'https:' || project.username || project.password)
       return res.status(503).json({ error: 'NOTES_SERVER_NOT_CONFIGURED' });
     const endpoint = new URL('/rest/v1/learning_notes', project);
+    // Constrain access to the existing personal-notes table. A client-selected
+    // zone, resource, role or table must never alter the database destination.
     const headers = { apikey: secret, Accept: 'application/json', 'Content-Type': 'application/json' };
     const mapNote = row => ({ id: row.id, title: row.title, body: row.content });
     let method = req.method;
@@ -103,6 +109,8 @@ export default async function handler(req, res) {
     if (!Array.isArray(rows)) return res.status(502).json({ error: 'NOTES_STORAGE_FAILED' });
     if (req.method === 'GET') {
       if (!itemId) return res.status(200).json({ notes: rows.map(mapNote) });
+      // The DB request already matched both the note ID and verified owner ID;
+      // a missing match exposes neither another user's note nor its existence.
       return rows.length ? res.status(200).json(mapNote(rows[0])) : res.status(404).json({ error: 'NOT_FOUND' });
     }
     if (req.method === 'POST') return rows.length ? res.status(201).json({ id: rows[0].id }) : res.status(502).json({ error: 'NOTES_STORAGE_FAILED' });
