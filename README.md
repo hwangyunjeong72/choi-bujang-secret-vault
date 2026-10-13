@@ -1,6 +1,6 @@
-# BYTE BACK 방어전 자료실 · 7단계
+# BYTE BACK 방어전 자료실 · 8단계
 
-> 현재 기준: **7단계 저장점 (2026-10-14)**. 아래의 2단계 검증 기록은 당시 이력이며 현재 동작 설명이 아닙니다.
+> 현재 기준: **8단계 저장점 (2026-10-14)**. 아래의 2단계 검증 기록은 당시 이력이며 현재 동작 설명이 아닙니다.
 
 ## 현재 구현 (GitHub `main` 코드 기준)
 - `public/index.html`에서 Supabase Auth 이메일·비밀번호 로그인과 로그아웃 화면을 제공하고 로그인 상태에 따라 가상 메모 목록·추가·수정·삭제 UI를 표시합니다.
@@ -8,7 +8,7 @@
 - `GET /api/notes`는 서버가 검증한 사용자 ID의 `owner_id`에 해당하는 메모 목록을 반환합니다. `POST /api/notes`는 같은 ID를 새 메모의 `owner_id`에 저장합니다.
 - `GET /api/notes/:id`, `PUT /api/notes/:id`, `DELETE /api/notes/:id`를 구현했습니다. 외부 필드 `body`는 DB `learning_notes.content`에 대응합니다.
 - 서버 함수는 Vercel 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 사용합니다. 공개 `public/data.json`은 배포하지 않습니다.
-- `aleph.config.json`의 `step`은 **7**이며 `identityProvider`와 허용된 CRUD 경로 다섯 개가 등록되어 있습니다.
+- `aleph.config.json`의 `step`은 **8**이며 `identityProvider`와 판정기 허용 읽기 경로 두 개가 등록되어 있습니다. 기존 메모 CRUD API 자체와 화면의 메모 목록 요청은 보존되었으나 판정기 목록 차단 정책과는 차이가 있습니다.
 
 ## 4단계 소유자 격리 (5단계에서도 유지)
 단건 `GET`·`PUT`·`DELETE`도 서버가 검증한 사용자 ID와 DB 행의 `owner_id`를 동시에 필터링합니다. `POST`에서는 검증된 ID를 `owner_id`로 저장하며 요청 본문의 소유자 변경은 거부합니다. 수정 요청은 `title`·`body`만 허용합니다. **이 동작은 코드에서 확인했지만 실제 A/B 계정 테스트 결과는 아직 없습니다.** RLS/테이블 최소 권한 SQL은 제안만 했으며 실행 또는 적용 확인을 하지 않았습니다.
@@ -17,7 +17,7 @@
 | 항목 | 상태 |
 | --- | --- |
 | GitHub `main`의 로그인·소유자 검사 포함 CRUD 구현 | 코드 확인 |
-| `aleph.config.json`의 `step: 7`·발급자·허용 경로·원본 REST 주소 | 코드 확인 |
+| `aleph.config.json`의 `step: 8`·발급자·허용 경로·원본 REST 주소 | 코드 확인 |
 | Vercel Production 최신 배포 및 실제 주소 일치 | **미검증** (연결 권한 오류 이력) |
 | A 계정 로그인·메모 추가·수정·삭제 | **미실행 / 미검증** |
 | 로그아웃·비로그인 API 요청 HTTP 401 | **미실행 / 미검증** |
@@ -42,6 +42,15 @@
 - 데이터: 학습용 A/B 메모 연결 SQL과 RLS 및 최소 권한 SQL은 이전 대화에서 **제안만** 했습니다. 데이터 변경과 RLS 정책 적용·권한 검사 성공은 여기서 확인하지 않았습니다.
 - 실행·검증: Vercel Production 배포, 실제 A/B 계정 격리 테스트와 `npm run bundle`은 별도 확인이 필요합니다. `bundle-notes.json` 및 `artifacts/submission.json`은 커밋 대상에서 제외합니다.
 - 재실행: 최신 `main`을 받은 뒤 `npm run build -- --local`로 정적 파일을 검사합니다. `npm run bundle`에는 Git 저장소의 깨끗한 작업 트리, 로컬 전용 `bundle-notes.json`과 단계별 실제 점검 기록이 필요합니다.
+
+## 8단계 저장점 (2026-10-14)
+- **자원 구분:** `src/resource-ids.mjs`에서 내 메모(`personal_notes`)와 강사 공지(`instructor_notices`)의 논리 ID를 나눴습니다. 이 식별 함수는 기존 API에 연결되지 않았으며 공지 API는 아직 없습니다.
+- **판정기 구역 규칙:** `src/decider.mjs`에서 `service`, `method`, `route`, `path`를 함께 확인합니다. 메모 단건 `GET /api/notes/:id` 및 반 공지 `GET /api/notices`만 허용 대상이며, 메모 목록·공지 쓰기·강사 자료·알 수 없는 경로는 거부합니다. 메모 ID를 UUID로 제한하지 않으며 기존 `device_registered`와 `step_up_required` 규칙을 유지합니다.
+- **API 확인:** `api/notes.js`는 서버에서 검증된 로그인 사용자 ID와 저장된 메모의 `owner_id`를 함께 조건에 넣습니다. 화면 메뉴, 클라이언트의 `role`·`owner_id`는 믿지 않습니다. 강사 역할을 검증할 별도 서버 저장소가 없으므로 강사 권한을 부여하지 않았습니다.
+- **서버 API와 판정기 경계:** 메모 화면은 기존 `GET /api/notes`를 계속 사용하며, 판정기는 전체 목록을 거부합니다. 판정기의 반 공지 읽기 허용 경로는 별도 서버 API가 없으므로 실제 운영 조회를 보장하지 않습니다. 이 차이를 해결했다고 주장하지 않습니다.
+- **검증 상태:** GitHub 코드·정적 경로 검토만 수행했습니다. 8단계 판정기 가상 시험, 직접 API 우회 요청, 타인 메모 거부 실측, Vercel 배포, 심판 판정 및 `npm run bundle` 성공은 아직 확인하지 않았습니다.
+- **재실행:** Node.js 22 이상 환경의 최신 Git 저장소에서 `npm run decider:test`로 로컬 판정기 연습을 실행하고 메모 목록 거부·단건 허용은 계약에 맞는 별도 가상 요청으로 검증해야 합니다. `npm run bundle`에는 깨끗한 Git 작업 폴더와 Git에 포함하지 않는 `bundle-notes.json`, 현재 단계에 맞는 실제 `src/attack-check.mjs` 점검이 필요합니다.
+- **설정:** `aleph.config.json`은 `step: 8`이며 `allowedRoutes`는 `GET /api/notes/:id`, `GET /api/notices`입니다. `judgeIssuer`, `identityProvider`, `originalApiUrl`, 배포 주소는 변경하지 않았습니다. 토큰·비밀번호·서버 키·메모 본문은 기록하지 않습니다.
 
 ## 7단계 저장점 (2026-10-14)
 - `src/decider.mjs`에는 기존 `device_registered` 규칙과 새 `step_up_required` 규칙이 구현되어 있습니다. 엔진 계약의 `signals`와 `recentEvents` 형식만 검사하고, 출처 없는 지역·네트워크·시각·행동값을 정상값으로 임의 보정하지 않습니다.
