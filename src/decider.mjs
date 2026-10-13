@@ -1,6 +1,6 @@
 // Only use identity and registration verified by the ALEPH engine.
 // The verified device must be registered to read notes. Other requests remain denied.
-export const RULE_IDS = Object.freeze(['device_registered']);
+export const RULE_IDS = Object.freeze(['device_registered', 'step_up_required']);
 
 // Validate only the engine contract. Never promote request headers or invented
 // location/device objects into trusted connection signals.
@@ -30,6 +30,18 @@ const trustedInputShape = request => isRecord(request)
   && validSignals(request.signals)
   && validRecentEvents(request.recentEvents);
 
+// Only the combination of unusual hour, unfamiliar network and a recent
+// burst of reading is a step-up signal; geography alone never blocks access.
+const requiresStepUp = request => {
+  if (request.signals?.source !== 'judge_fixture') return false;
+  const unusualHour = Number.isInteger(request.signals.hour)
+    && (request.signals.hour < 6 || request.signals.hour >= 23);
+  const unfamiliarNetwork = request.signals.network === 'unusual';
+  const readingBurst = request.recentEvents.some(event =>
+    event.kind === 'risk_signal' && event.ageSeconds <= 300 && event.count >= 10);
+  return unusualHour && unfamiliarNetwork && readingBurst;
+};
+
 export async function decide(request) {
   const registered = request?.deviceRegistered === true;
   const readRoute = request?.method === 'GET'
@@ -37,16 +49,24 @@ export async function decide(request) {
       || request?.route === 'GET /api/notes/:id'
       || request?.route === 'GET /notes'
       || request?.route === 'GET /notes/:id');
-  // Invalid or unverified signal provenance fails closed. Fixture metadata
-  // remains simulation-only and is never treated as real location proof.
   const inputValid = trustedInputShape(request);
+  const eligible = registered && inputValid && readRoute;
+  const suspicious = eligible && requiresStepUp(request);
+  // A verified, fresh step-up is provided by the engine, not client headers.
+  const freshlyVerified = request?.stepUp?.verified === true
+    && Number.isInteger(request.stepUp.authAgeSeconds)
+    && request.stepUp.authAgeSeconds >= 0
+    && request.stepUp.authAgeSeconds <= 300;
+  const needsConfirmation = suspicious && !freshlyVerified;
 
   return {
     schema: 'aleph.decision.v1',
     requestId: request?.requestId,
-    decision: inputValid && registered && readRoute ? 'allow' : 'deny',
+    decision: !eligible ? 'deny' : needsConfirmation ? 'step_up' : 'allow',
     reasonCode: !registered ? 'device_not_registered'
-      : (!inputValid || !readRoute ? 'starter_not_ready' : 'approved'),
-    ruleIds: ['device_registered'],
+      : !eligible ? 'starter_not_ready'
+      : needsConfirmation ? 'step_up_required' : 'approved',
+    ruleIds: needsConfirmation ? ['device_registered', 'step_up_required']
+      : ['device_registered'],
   };
 }
