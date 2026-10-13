@@ -1,6 +1,6 @@
-# BYTE BACK 방어전 자료실 · 6단계
+# BYTE BACK 방어전 자료실 · 7단계
 
-> 현재 기준: **6단계 저장점 (2026-10-14)**. 아래의 2단계 검증 기록은 당시 이력이며 현재 동작 설명이 아닙니다.
+> 현재 기준: **7단계 저장점 (2026-10-14)**. 아래의 2단계 검증 기록은 당시 이력이며 현재 동작 설명이 아닙니다.
 
 ## 현재 구현 (GitHub `main` 코드 기준)
 - `public/index.html`에서 Supabase Auth 이메일·비밀번호 로그인과 로그아웃 화면을 제공하고 로그인 상태에 따라 가상 메모 목록·추가·수정·삭제 UI를 표시합니다.
@@ -8,7 +8,7 @@
 - `GET /api/notes`는 서버가 검증한 사용자 ID의 `owner_id`에 해당하는 메모 목록을 반환합니다. `POST /api/notes`는 같은 ID를 새 메모의 `owner_id`에 저장합니다.
 - `GET /api/notes/:id`, `PUT /api/notes/:id`, `DELETE /api/notes/:id`를 구현했습니다. 외부 필드 `body`는 DB `learning_notes.content`에 대응합니다.
 - 서버 함수는 Vercel 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 사용합니다. 공개 `public/data.json`은 배포하지 않습니다.
-- `aleph.config.json`의 `step`은 **6**이며 `identityProvider`와 허용된 CRUD 경로 다섯 개가 등록되어 있습니다.
+- `aleph.config.json`의 `step`은 **7**이며 `identityProvider`와 허용된 CRUD 경로 다섯 개가 등록되어 있습니다.
 
 ## 4단계 소유자 격리 (5단계에서도 유지)
 단건 `GET`·`PUT`·`DELETE`도 서버가 검증한 사용자 ID와 DB 행의 `owner_id`를 동시에 필터링합니다. `POST`에서는 검증된 ID를 `owner_id`로 저장하며 요청 본문의 소유자 변경은 거부합니다. 수정 요청은 `title`·`body`만 허용합니다. **이 동작은 코드에서 확인했지만 실제 A/B 계정 테스트 결과는 아직 없습니다.** RLS/테이블 최소 권한 SQL은 제안만 했으며 실행 또는 적용 확인을 하지 않았습니다.
@@ -17,7 +17,7 @@
 | 항목 | 상태 |
 | --- | --- |
 | GitHub `main`의 로그인·소유자 검사 포함 CRUD 구현 | 코드 확인 |
-| `aleph.config.json`의 `step: 6`·발급자·허용 경로·원본 REST 주소 | 코드 확인 |
+| `aleph.config.json`의 `step: 7`·발급자·허용 경로·원본 REST 주소 | 코드 확인 |
 | Vercel Production 최신 배포 및 실제 주소 일치 | **미검증** (연결 권한 오류 이력) |
 | A 계정 로그인·메모 추가·수정·삭제 | **미실행 / 미검증** |
 | 로그아웃·비로그인 API 요청 HTTP 401 | **미실행 / 미검증** |
@@ -32,7 +32,7 @@
 4. 정적 빌드 점검은 `npm run build -- --local`입니다. `npm run bundle`에는 깨끗한 Git 작업 폴더, 로컬 전용 `bundle-notes.json`, 해당 단계의 실제 공격 점검 구현이 필요합니다.
 
 ## 보존되는 시작 틀
-`api/ai.js`, `api/threat-intel.js`, `src/decider.mjs`, `src/detect.mjs`, XDR 연습 자료와 검사 도구는 이번 README 정리에서 수정하지 않습니다. `judgeIssuer`도 변경하지 않습니다.
+`api/ai.js`, `api/threat-intel.js`, `src/detect.mjs`, XDR 연습 자료와 검사 도구는 이번 저장점에서 수정하지 않습니다. `judgeIssuer`도 변경하지 않습니다.
 
 [AGENTS.md](AGENTS.md)의 보안 및 저장점 규칙을 따릅니다.
 
@@ -42,6 +42,15 @@
 - 데이터: 학습용 A/B 메모 연결 SQL과 RLS 및 최소 권한 SQL은 이전 대화에서 **제안만** 했습니다. 데이터 변경과 RLS 정책 적용·권한 검사 성공은 여기서 확인하지 않았습니다.
 - 실행·검증: Vercel Production 배포, 실제 A/B 계정 격리 테스트와 `npm run bundle`은 별도 확인이 필요합니다. `bundle-notes.json` 및 `artifacts/submission.json`은 커밋 대상에서 제외합니다.
 - 재실행: 최신 `main`을 받은 뒤 `npm run build -- --local`로 정적 파일을 검사합니다. `npm run bundle`에는 Git 저장소의 깨끗한 작업 트리, 로컬 전용 `bundle-notes.json`과 단계별 실제 점검 기록이 필요합니다.
+
+## 7단계 저장점 (2026-10-14)
+- `src/decider.mjs`에는 기존 `device_registered` 규칙과 새 `step_up_required` 규칙이 구현되어 있습니다. 엔진 계약의 `signals`와 `recentEvents` 형식만 검사하고, 출처 없는 지역·네트워크·시각·행동값을 정상값으로 임의 보정하지 않습니다.
+- `judge_fixture` 출처의 가상 복합 사건에서 낯선 네트워크, 심야 시각, 최근 대량 읽기 의심이 모두 확인되면 `step_up / step_up_required`를 반환합니다. 지역 하나만으로 영구 차단하지 않습니다. 정상 등록 기기는 `allow / approved`, 미등록 기기는 `deny / device_not_registered`입니다.
+- `stepUp.verified`와 `stepUp.authAgeSeconds`는 계약에 있지만, 같은 사용자의 실제 재로그인 시각·원래 요청과의 연동은 확인되지 않았습니다. 가상 추가 확인 완료 요청에 대한 `allow`를 실제 재로그인 검증으로 주장하지 않습니다.
+- 이전 가상 시험에서 `npm run decider:test`의 등록 기기, 미등록 기기, 복합 이상 접속, 가상 추가 확인 완료 네 사례와 `npm run fixture:7`의 정상 `allow`/이상 `step_up`을 확인한 것으로 보고됐습니다. 심판의 실제 공격 및 운영 자료 차단·새 로그인 후 해제는 **미실행/미검증**입니다.
+- 재실행: 저장소 폴더에서 Node.js 22 이상을 준비하고 `npm run decider:test`, `npm run fixture:7`을 순서대로 실행합니다. 실제 운영 접속은 Vercel 배포와 엔진 계약이 확보된 후 별도로 확인해야 합니다.
+- 설정: `aleph.config.json`은 `step: 7`로 기록하고 로그인 발급자, `judgeIssuer`, 허용 경로, 원본 API HTTPS 주소는 유지합니다. `src/attack-check.mjs`는 여전히 1단계 전용이며 제출 번들 성공을 보장하지 않습니다.
+- 비밀값·토큰 원문·메모 본문·인증서·서명 키를 저장소 또는 제출 묶음에 넣지 않습니다. `bundle-notes.json` 및 `artifacts/submission.json`은 커밋하지 않습니다.
 
 ## 6단계 저장점 (2026-10-14)
 - 등록 기기의 메모 읽기 요청을 허용하고 미등록 또는 미설정 기기를 `device_not_registered`로 거부하는 `device_registered` 규칙을 `src/decider.mjs`에 구현했습니다. 기존 요청·응답 계약과 로그인·메모 API는 유지합니다.
