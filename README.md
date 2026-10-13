@@ -1,6 +1,6 @@
-# BYTE BACK 방어전 자료실 · 4단계
+# BYTE BACK 방어전 자료실 · 5단계
 
-> 현재 기준: **4단계 저장점 (2026-10-14)**. 아래의 2단계 검증 기록은 당시 이력이며 현재 동작 설명이 아닙니다.
+> 현재 기준: **5단계 저장점 (2026-10-14)**. 아래의 2단계 검증 기록은 당시 이력이며 현재 동작 설명이 아닙니다.
 
 ## 현재 구현 (GitHub `main` 코드 기준)
 - `public/index.html`에서 Supabase Auth 이메일·비밀번호 로그인과 로그아웃 화면을 제공하고 로그인 상태에 따라 가상 메모 목록·추가·수정·삭제 UI를 표시합니다.
@@ -8,16 +8,16 @@
 - `GET /api/notes`는 서버가 검증한 사용자 ID의 `owner_id`에 해당하는 메모 목록을 반환합니다. `POST /api/notes`는 같은 ID를 새 메모의 `owner_id`에 저장합니다.
 - `GET /api/notes/:id`, `PUT /api/notes/:id`, `DELETE /api/notes/:id`를 구현했습니다. 외부 필드 `body`는 DB `learning_notes.content`에 대응합니다.
 - 서버 함수는 Vercel 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 사용합니다. 공개 `public/data.json`은 배포하지 않습니다.
-- `aleph.config.json`의 `step`은 **4**이며 `identityProvider`와 허용된 CRUD 경로 다섯 개가 등록되어 있습니다.
+- `aleph.config.json`의 `step`은 **5**이며 `identityProvider`와 허용된 CRUD 경로 다섯 개가 등록되어 있습니다.
 
-## 4단계 소유자 격리 (GitHub 코드 기준)
+## 4단계 소유자 격리 (5단계에서도 유지)
 단건 `GET`·`PUT`·`DELETE`도 서버가 검증한 사용자 ID와 DB 행의 `owner_id`를 동시에 필터링합니다. `POST`에서는 검증된 ID를 `owner_id`로 저장하며 요청 본문의 소유자 변경은 거부합니다. 수정 요청은 `title`·`body`만 허용합니다. **이 동작은 코드에서 확인했지만 실제 A/B 계정 테스트 결과는 아직 없습니다.** RLS/테이블 최소 권한 SQL은 제안만 했으며 실행 또는 적용 확인을 하지 않았습니다.
 
 ## 현재 검증 상태 (2026-10-14)
 | 항목 | 상태 |
 | --- | --- |
-| GitHub `main`의 4단계 소유자 검사 포함 로그인·CRUD 구현 | 코드 확인 |
-| `aleph.config.json`의 `step: 4`·발급자·허용 경로 | 코드 확인 |
+| GitHub `main`의 로그인·소유자 검사 포함 CRUD 구현 | 코드 확인 |
+| `aleph.config.json`의 `step: 5`·발급자·허용 경로·원본 REST 주소 | 코드 확인 |
 | Vercel Production 최신 배포 및 실제 주소 일치 | **미검증** (연결 권한 오류 이력) |
 | A 계정 로그인·메모 추가·수정·삭제 | **미실행 / 미검증** |
 | 로그아웃·비로그인 API 요청 HTTP 401 | **미실행 / 미검증** |
@@ -42,6 +42,15 @@
 - 데이터: 학습용 A/B 메모 연결 SQL과 RLS 및 최소 권한 SQL은 이전 대화에서 **제안만** 했습니다. 데이터 변경과 RLS 정책 적용·권한 검사 성공은 여기서 확인하지 않았습니다.
 - 실행·검증: Vercel Production 배포, 실제 A/B 계정 격리 테스트와 `npm run bundle`은 별도 확인이 필요합니다. `bundle-notes.json` 및 `artifacts/submission.json`은 커밋 대상에서 제외합니다.
 - 재실행: 최신 `main`을 받은 뒤 `npm run build -- --local`로 정적 파일을 검사합니다. `npm run bundle`에는 Git 저장소의 깨끗한 작업 트리, 로컬 전용 `bundle-notes.json`과 단계별 실제 점검 기록이 필요합니다.
+
+## 5단계 저장점 (2026-10-14)
+- 브라우저 메모 목록·추가·수정·삭제는 이미 `/api/notes` 서버 함수를 사용하며, Supabase Auth 로그인·로그아웃 호출은 별도로 유지합니다.
+- `api/notes.js`의 Bearer 로그인 검증, 소유자 ID 필터, 서버 환경변수 `SUPABASE_URL` 및 `SUPABASE_SECRET_KEY` 사용은 변경하지 않았습니다.
+- `aleph.config.json`의 `step`은 5이며 `originalApiUrl`은 쿼리가 없는 `https://nfhfbhignmrgutjlxpvw.supabase.co/rest/v1/learning_notes`입니다. `judgeIssuer`와 `identityProvider`, 메서드별 `allowedRoutes`는 유지합니다.
+- `public.learning_notes`의 PUBLIC·anon·authenticated 직접 테이블 권한 회수 SQL은 **제안만 했으며 실행·적용 여부는 확인하지 않았습니다**. 원본 REST API의 anon 키 차단과 서버 경유 A/B CRUD 테스트도 **미검증**입니다.
+- 재검사: Vercel **Deployments**에서 최신 `main`이 Production에 배포됐는지 확인하고, 익명 원본 REST 접근 거부 및 A/B 계정 서버 API 정상 작동을 직접 확인합니다. `npm run build -- --local`로 정적 빌드를 점검할 수 있습니다.
+- 제출: `npm run bundle`은 깨끗한 Git 작업 트리, Git origin, Git에 포함하지 않는 `bundle-notes.json`, 단계에 맞는 실제 공격 점검을 요구합니다. `src/attack-check.mjs`는 현재 1단계 전용이므로 5단계 점검과 제출 JSON 생성 성공은 아직 확인하지 않았습니다.
+- 보안: 비밀번호·토큰·서버 키·실명·메모 본문은 제출 JSON 및 저장소에 넣지 않습니다. `artifacts/submission.json`은 커밋하지 않습니다.
 
 ---
 ## 이전 단계 기록 (역사적 기록 · 현재 동작 아님)
