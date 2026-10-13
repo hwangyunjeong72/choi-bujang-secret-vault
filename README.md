@@ -43,6 +43,14 @@
 - 실행·검증: Vercel Production 배포, 실제 A/B 계정 격리 테스트와 `npm run bundle`은 별도 확인이 필요합니다. `bundle-notes.json` 및 `artifacts/submission.json`은 커밋 대상에서 제외합니다.
 - 재실행: 최신 `main`을 받은 뒤 `npm run build -- --local`로 정적 파일을 검사합니다. `npm run bundle`에는 Git 저장소의 깨끗한 작업 트리, 로컬 전용 `bundle-notes.json`과 단계별 실제 점검 기록이 필요합니다.
 
+## 10단계 작업 중: 비공개 가상 메모 1건 복구 POST (미배포/미검증)
+- **서비스·경로:** `restore-note` 테스트 전용 서비스, `POST /api/restore-note`. 기존 `/api/notes` CRUD 경로와 화면은 변경하지 않았습니다. 이 관리용 경로는 `aleph.config.json`의 판정기 `allowedRoutes`에 추가하지 않습니다.
+- **시험 계정 B만:** `src/verify-login.mjs`에서 검증한 **심판 가상 신원** `kind: judge` 및 `identity: b`에 한정하고, 사본의 `owner_id`와 검증된 `userId`가 같아야 합니다. 학생 JWT·요청 본문 `role`이나 `owner_id`로 B 권한을 주장할 수 없습니다.
+- **비공개 사본:** `RESTORE_B_NOTE_SNAPSHOT` 서버 환경 변수에 `{id,owner_id,title,content,contentSha256}` 형식의 허가된 가상 메모 한 건을 저장합니다. 저장소·로그·응답에는 메모 본문이나 토큰을 남기지 않습니다. 내용 해시(SHA-256) 및 ID·소유자를 확인하고 대상은 본문 `{id,contentSha256}`로 지정합니다.
+- **시험 DB 안전장치:** `RESTORE_TEST_ONLY=true` 및 `RESTORE_TEST_SUPABASE_HOST`가 설정돼 실제 `SUPABASE_URL` 호스트와 일치해야 동작합니다. **별도 가상 시험 DB 외에는 실행하지 마세요.** 대상 메모가 이미 존재하고 소유자가 일치할 때만 해당 `id`의 `title`/`content`를 갱신합니다. 타인 메모·다른 메모·감사 테이블은 수정하지 않습니다.
+- **거부:** 사본이나 서버 설정 누락(503), 미인증(401), B 아닌 사용자(403), 해시·ID·소유자 불일치(403), 대상 누락(404), 동시 변경·확인 실패(409) 등은 실패로 반환합니다. 실제 DB의 원자적 동시성 보장은 별도의 테스트 검증이 필요합니다.
+- **검증 상태:** GitHub 코드만 반영. B 시험 계정과 비공개 사본의 실제 연결, 별도 DB 복원, 복원 후 해시·감사 기록 실측, Vercel 배포, 심판 판정은 **미실행/미검증**입니다. `aleph.config.json`은 9단계 저장점 그대로 유지합니다.
+
 ## 9단계 저장점 (2026-10-14)
 - `src/detect.mjs`에서 검증된 가상 사건 계약의 `identity.sub`, `method`, `at`만 사용하고 그 외의 토큰·메모 내용·실명은 저장하거나 출력하지 않습니다.
 - 같은 가명 사용자의 GET 요청이 임의의 연속 10분 구간에 **120건 초과**하면 `{ action: 'propose_revocation', reasonCode: 'burst_read', subject }`를 반환하고, 그 밖에는 `{ action: 'observe' }`를 반환합니다. 여러 사용자의 사건은 합산하지 않습니다.
