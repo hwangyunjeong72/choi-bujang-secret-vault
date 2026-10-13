@@ -52,10 +52,14 @@ export default async function handler(req, res) {
         || payload.title.length > 200 || typeof payload.body !== 'string'
         || payload.body.length > 10000)
       return res.status(400).json({ error: 'INVALID_NOTE' });
+    // Never allow client-supplied ownership metadata, even when it matches.
+    if (Object.hasOwn(payload, 'owner_id') || Object.hasOwn(payload, 'ownerId')
+        || Object.hasOwn(payload, 'userId') || Object.hasOwn(payload, 'role'))
+      return res.status(403).json({ error: 'OWNER_CHANGE_FORBIDDEN' });
+    if (itemId && Object.hasOwn(payload, 'id'))
+      return res.status(400).json({ error: 'INVALID_UPDATE_FIELDS' });
     if (payload.id !== undefined && !UUID.test(String(payload.id)))
       return res.status(400).json({ error: 'INVALID_ID' });
-    if (itemId && payload.id !== undefined && payload.id.toLowerCase() !== itemId.toLowerCase())
-      return res.status(400).json({ error: 'ID_MISMATCH' });
   }
 
   try {
@@ -68,13 +72,13 @@ export default async function handler(req, res) {
     let method = req.method;
     let body;
     if (itemId) endpoint.searchParams.set('id', 'eq.' + itemId);
+    // Bind every item operation to the trusted identity, including GET/PATCH/DELETE.
+    // The database enforces both predicates within the same statement.
+    endpoint.searchParams.set('owner_id', 'eq.' + identity.userId);
 
     if (method === 'GET') {
       endpoint.searchParams.set('select', 'id,title,content');
-      if (!itemId) {
-        endpoint.searchParams.set('owner_id', 'eq.' + identity.userId);
-        endpoint.searchParams.set('order', 'created_at.asc');
-      }
+      if (!itemId) endpoint.searchParams.set('order', 'created_at.asc');
     } else if (method === 'POST') {
       const id = payload.id || randomUUID();
       body = JSON.stringify({ id, title: payload.title.trim(), content: payload.body, owner_id: identity.userId });
@@ -82,14 +86,15 @@ export default async function handler(req, res) {
       endpoint.searchParams.set('select', 'id,title,content');
     } else if (method === 'PUT') {
       method = 'PATCH';
+      // No owner_id can be changed: the new row retains the authenticated owner.
       body = JSON.stringify({ title: payload.title.trim(), content: payload.body });
       headers.Prefer = 'return=representation';
       endpoint.searchParams.set('select', 'id,title,content');
-      // Intentionally no owner_id filter here; stage 4 adds ownership checks.
+      // Existing row must belong to the authenticated user; only title/content change.
     } else {
       headers.Prefer = 'return=representation';
       endpoint.searchParams.set('select', 'id');
-      // Intentionally no owner_id filter here; stage 4 adds ownership checks.
+      // Deletion must match both ID and the authenticated owner.
     }
 
     const upstream = await fetch(endpoint, { method, headers, body, cache: 'no-store' });
