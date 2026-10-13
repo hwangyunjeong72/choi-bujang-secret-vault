@@ -30,6 +30,28 @@ const trustedInputShape = request => isRecord(request)
   && validSignals(request.signals)
   && validRecentEvents(request.recentEvents);
 
+// Resource zoning uses only engine-verified service, method, route and path.
+// Exact segment boundaries keep /export from being treated as a note ID.
+const routeZone = request => {
+  if (typeof request?.service !== 'string' || typeof request?.method !== 'string'
+      || typeof request?.route !== 'string' || typeof request?.path !== 'string') return null;
+  const method = request.method;
+  const route = request.route;
+  const path = request.path;
+  if (method === 'GET' && request.service === 'notes'
+      && (route === 'GET /api/notes/:id' || route === 'GET /notes/:id')) {
+    const prefix = route.includes('/api/') ? '/api/notes/' : '/notes/';
+    const id = path.startsWith(prefix) ? path.slice(prefix.length) : '';
+    if (id && !id.includes('/') && id !== 'export' && !id.startsWith(':')
+        && !/[?#]/u.test(id)) return 'personal_notes';
+  }
+  if (method === 'GET' && request.service === 'notices'
+      && (route === 'GET /api/notices' || route === 'GET /notices')
+      && (path === '/api/notices' || path === '/notices')
+      && route.endsWith(path)) return 'class_notices';
+  return null; // Instructor-only documents, mutations, lists and unknown paths.
+};
+
 // Only the combination of unusual hour, unfamiliar network and a recent
 // burst of reading is a step-up signal; geography alone never blocks access.
 const requiresStepUp = request => {
@@ -44,13 +66,9 @@ const requiresStepUp = request => {
 
 export async function decide(request) {
   const registered = request?.deviceRegistered === true;
-  const readRoute = request?.method === 'GET'
-    && (request?.route === 'GET /api/notes'
-      || request?.route === 'GET /api/notes/:id'
-      || request?.route === 'GET /notes'
-      || request?.route === 'GET /notes/:id');
+  const zone = routeZone(request);
   const inputValid = trustedInputShape(request);
-  const eligible = registered && inputValid && readRoute;
+  const eligible = registered && inputValid && zone !== null;
   const suspicious = eligible && requiresStepUp(request);
   // A verified, fresh step-up is provided by the engine, not client headers.
   const freshlyVerified = request?.stepUp?.verified === true
