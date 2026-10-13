@@ -74,3 +74,14 @@
 - 현재 검증 한계: Vercel 조회는 연결 권한 오류 403으로 미검증이며 Production 주소도 검증되지 않아 `publicAppUrl` 자리표시자를 유지했습니다. `src/attack-check.mjs`는 아직 1단계 전용이므로 **2단계 번들 제출이 성공했다고 주장하지 않습니다.**
 - 위험 기록: `/api/notes`에는 아직 인증이 없어 누구나 가상 메모를 요청할 수 있고, 과거 공개 커밋과 옛 배포의 노출도 해소되지 않았습니다. 로그인 보호 전에는 실제 개인정보를 저장하지 않습니다.
 - 보안: GitHub에 비밀키 값, 토큰, 메모 본문을 새로 넣지 않습니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
+
+
+## 3단계 저장점 (2026-10-14)
+- 구현: Supabase Auth 이메일·비밀번호 로그인과 로그아웃 UI, 검증된 Authorization Bearer 토큰을 요구하는 자료 API, 가상 메모 생성·목록·단건 조회·수정·삭제 화면을 추가했습니다.
+- 서버: `src/verify-login.mjs`는 변경하지 않고 호출합니다. 클라이언트가 전송한 사용자 ID나 역할을 믿지 않으며, 생성 시 검증된 `userId`를 `owner_id`에 저장합니다. 목록은 소유자 기준으로 조회합니다.
+- API: `GET /api/notes`, `POST /api/notes`, `GET /api/notes/:id`, `PUT /api/notes/:id`, `DELETE /api/notes/:id`. 외부 응답 필드는 `id,title,body`, DB의 본문 열은 `content`입니다.
+- 설정: `aleph.config.json`의 `step: 3`, Supabase Auth issuer·audience·JWKS, 허용 경로 다섯 개를 기록했습니다. `judgeIssuer`와 5단계 이전의 `originalApiUrl` 값은 변경하지 않았습니다. 배포 주소 `https://choi-bujang-secret-vault.vercel.app`는 실제 운영 배포와 재대조가 필요합니다.
+- 확인: Production 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 Vercel에서 직접 설정한 뒤 최신 `main` 배포를 확인합니다. A 계정 로그인 후 추가·수정·삭제, 로그아웃 후 HTTP 401을 시험해야 합니다. 이 시험 및 Vercel 배포는 아직 확인되지 않았습니다.
+- 남은 약점: 단건 GET·PUT·DELETE의 소유자 검사가 없으므로 메모 ID를 아는 B가 접근할 수 있습니다. 4단계에서 수정해야 하며 그때까지 가상 자료만 사용합니다.
+- 다시 실행: `npm run build -- --local`은 정적 빌드 점검입니다. `npm run bundle`은 깨끗한 Git 작업 폴더, 비공개 `bundle-notes.json`, 단계별 `src/attack-check.mjs` 자기 점검이 필요합니다. 현재 `attack-check.mjs`는 1단계용이며 3단계 점검을 아직 구현하지 않았습니다.
+- 보안: 비밀번호·JWT·서버 키·실제 메모 내용은 GitHub에 저장하지 않습니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
