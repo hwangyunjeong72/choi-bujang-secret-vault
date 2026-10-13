@@ -43,6 +43,20 @@
 - 실행·검증: Vercel Production 배포, 실제 A/B 계정 격리 테스트와 `npm run bundle`은 별도 확인이 필요합니다. `bundle-notes.json` 및 `artifacts/submission.json`은 커밋 대상에서 제외합니다.
 - 재실행: 최신 `main`을 받은 뒤 `npm run build -- --local`로 정적 파일을 검사합니다. `npm run bundle`에는 Git 저장소의 깨끗한 작업 트리, 로컬 전용 `bundle-notes.json`과 단계별 실제 점검 기록이 필요합니다.
 
+## 6단계 등록 기기 판정 로컬 확인 (2026-10-14)
+
+- 현재 `src/decider.mjs`는 엔진이 전달한 `request.deviceRegistered === true` 및 메모 GET 경로일 때 `allow / approved`를 반환하고, 미등록 또는 누락 기기는 `deny / device_not_registered`로 거부합니다.
+- 확인 순서: (1) 저장소 폴더에서 `node --version`으로 Node.js 22 이상인지 확인 → (2) `npm run decider:test` 실행 → (3) 두 시험 이름이 모두 `통과`로 표시되는지 확인합니다.
+- 2026-10-14: GitHub에서 확인한 `src/decider.mjs`, `scripts/decider-test.mjs`, `scripts/fixture-7.mjs`를 별도 로컬 폴더에 재현하여 `npm run decider:test` 실행 **통과**. 이는 GitHub 작업 폴더나 Vercel에서의 실행이 아닙니다.
+- 실제 출력:
+  ```text
+  통과 · 등록 기기의 정상 요청
+  통과 · 미등록 기기의 가상 요청
+  이 명령은 가상 요청으로 연습하며 심판 통과 증거가 아닙니다.
+  ```
+- 별도로 판정 응답을 확인한 결과, 등록 기기는 `allow / approved`, 미등록 기기는 `deny / device_not_registered`였습니다.
+- 이 단계에는 별도로 설치할 접속 프로그램이 없습니다. 미등록 기기의 실제 공격·릴레이 차단 검증은 **심판 담당**이며, 로컬 가상 시험을 실제 공격 증거로 취급하지 않습니다. 인증서·서명 키·비밀값은 생성하거나 저장하지 않았습니다.
+
 ## 5단계 저장점 (2026-10-14)
 - 브라우저 메모 목록·추가·수정·삭제는 이미 `/api/notes` 서버 함수를 사용하며, Supabase Auth 로그인·로그아웃 호출은 별도로 유지합니다.
 - `api/notes.js`의 Bearer 로그인 검증, 소유자 ID 필터, 서버 환경변수 `SUPABASE_URL` 및 `SUPABASE_SECRET_KEY` 사용은 변경하지 않았습니다.
