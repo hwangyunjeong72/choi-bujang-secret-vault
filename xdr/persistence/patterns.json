@@ -1,0 +1,45 @@
+{
+  "schema": "byteback.xdr.persistence.patterns.v1",
+  "moduleKey": "persistence",
+  "references": [
+    "MITRE ATT&CK T1543: Create or Modify System Process",
+    "MITRE ATT&CK T1053: Scheduled Task/Job"
+  ],
+  "patterns": [
+    {
+      "name": "서명 없는 새 서비스 등록",
+      "condition": "rule.mitre에 T1543이 있고 설명에 '서명 없는 새 서비스' 또는 '서명 없는 서비스 등록'이 명시된다. 임시 폴더의 실행 파일 또는 연속 등록이 있으면 위험 근거가 강화된다.",
+      "evidence": "persistence.json의 ps-01·ps-04는 서명 없는 서비스 신규 등록과 T1543을 함께 기록한다."
+    },
+    {
+      "name": "서명 없는 서비스 실행 파일 변경",
+      "condition": "rule.mitre에 T1543이 있고 설명에 서비스 실행 파일 변경과 서명 없음이 함께 명시된다. 단순 서비스 설명 변경은 해당하지 않는다.",
+      "evidence": "persistence.json의 ps-06은 실행 파일 변경·서명 없음·T1543을 함께 기록하며 ps-11은 설명 변경만 기록한다."
+    },
+    {
+      "name": "낯선 예약 작업의 임시 실행 파일",
+      "condition": "rule.mitre에 T1053이 있고 설명에 처음 보는 예약 작업 또는 임의 문자열 작업 이름이 명시되며 data.path가 임시 폴더 실행 파일을 가리킨다.",
+      "evidence": "persistence.json의 ps-02·ps-05는 낯선 예약 작업이 임시 폴더 실행 파일을 호출하며 T1053과 연결된다."
+    },
+    {
+      "name": "평소 목록에 없는 시작 폴더 프로그램",
+      "condition": "rule.mitre에 T1543이 있고 설명에 시작 폴더에 평소 목록에 없는 프로그램이 추가됐다고 명시되며 시작 폴더 실행 경로가 존재한다. 조회만 한 이벤트는 제외한다.",
+      "evidence": "persistence.json의 ps-03은 평소 목록에 없는 시작 폴더 프로그램 추가를 기록하고 ps-20은 목록 조회만 기록한다."
+    },
+    {
+      "name": "시작 프로그램과 예약 작업의 동일 임시 파일",
+      "condition": "rule.mitre에 T1543과 T1053이 모두 있고 설명에 시작 프로그램과 예약 작업이 같은 임시 실행 파일을 가리킨다고 명시된다.",
+      "evidence": "persistence.json의 ps-07은 같은 임시 실행 파일을 시작 프로그램·예약 작업이 함께 참조한 사례로 T1543·T1053이 기록돼 있다."
+    },
+    {
+      "name": "재시작 후에도 남는 낯선 서비스",
+      "condition": "rule.mitre에 T1543이 있고 설명에 평소 목록에 없는 서비스가 재시작 후에도 남도록 등록됐다고 명시되며 실행 파일 경로가 확인된다.",
+      "evidence": "persistence.json의 ps-08은 평소 목록에 없는 서비스의 지속 등록과 T1543을 기록한다."
+    },
+    {
+      "name": "독립 악용 근거 없는 변경은 경고 또는 기록",
+      "condition": "서명 미확인만 있는 수업 작업, 서비스 설명 변경, 임시 파일 생성만, 단발 시작 폴더 변경, 정상 서명 서비스와 기존 예약 작업은 확정 악용으로 분류하지 않는다.",
+      "evidence": "persistence.json의 ps-09~ps-16은 불확실한 변경 사례이고 ps-17~ps-24는 정상 사용·기존 작업 대조 사례다."
+    }
+  ]
+}
