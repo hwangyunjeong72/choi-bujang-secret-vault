@@ -20,6 +20,12 @@
     .app-info { margin: 22px 0; padding: 18px; border: 1px solid #51667c; border-radius: 14px; background: #1a2a3d; }
     .app-info h2 { margin-top: 0; font-size: 20px; }
     .app-info p { margin: 6px 0; font-size: 15px; }
+    .operations-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin: 16px 0; }
+    .operations-grid div { border: 1px solid #51667c; border-radius: 12px; padding: 12px; }
+    .operations-grid dt { color: #bfd0e5; font-size: 14px; }
+    .operations-grid dd { margin: 7px 0; font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+    .operations-grid small { color: #bfd0e5; }
+    @media (max-width: 500px) { .operations-grid { grid-template-columns: 1fr; } }
     .auth { margin: 22px 0; padding: 18px; border: 1px solid #51667c; border-radius: 14px; }
     .auth input { width: 100%; box-sizing: border-box; margin: 6px 0; padding: 10px; }
     .auth button { margin: 8px 5px 8px 0; padding: 10px 18px; cursor: pointer; }
@@ -46,6 +52,19 @@
       <p>로그인과 설치는 별개입니다. 이 화면의 설치 여부는 기기 등록·승인 또는 접근 허용을 증명하지 않습니다.</p>
       <p id="network-status" role="status">네트워크 상태를 확인하는 중입니다.</p>
       <p>오프라인에서는 로그인 및 비공개 메모 조회·저장·수정·삭제를 사용할 수 없습니다. 메모를 오프라인에 저장하지 않습니다.</p>
+    </section>
+    <section class="app-info" id="operations-room" aria-labelledby="operations-title">
+      <h2 id="operations-title">탈환 작전실 · 읽기 전용 요약</h2>
+      <p>서버에서 확인되지 않은 사건·회수·복구 결과는 0건 또는 성공으로 표시하지 않습니다.</p>
+      <dl class="operations-grid">
+        <div><dt>판정기 규칙</dt><dd id="ops-rules">미확인</dd><small id="ops-rules-source">코드 확인 전</small></div>
+        <div><dt>탐지 사건</dt><dd id="ops-detection">미실행</dd><small>실제 탐지 서버 기록 미연결</small></div>
+        <div><dt>회수 상태</dt><dd id="ops-revocation">미실행</dd><small>회수 실행 기록 미연결</small></div>
+        <div><dt>복구 버전</dt><dd id="ops-recovery">미실행</dd><small>복구 검증 기록 미연결</small></div>
+      </dl>
+      <p id="ops-status" role="status">로그인 및 등록 기기 확인 뒤 서버 요약을 불러올 수 있습니다.</p>
+      <p>서버 기록 대조: <span id="ops-audit">미실행</span>. 메모 본문·토큰·개인키·사건 원문은 표시하지 않습니다.</p>
+      <button type="button" id="ops-refresh" hidden>작전실 새로고침</button>
     </section>
     <section class="auth">
       <p id="auth-status">로그인 상태 확인 중입니다.</p>
@@ -140,6 +159,7 @@
       list.replaceChildren();
       resetEditor();
       approvalStatus.textContent="승인되지 않음 / 기기 확인 필요";
+      resetOperations();
     }
     async function checkDeviceApproval() {
       lockProtected();
@@ -179,9 +199,50 @@
       const ok=await checkDeviceApproval();
       if (!ok || !navigator.onLine) return;
       panel.hidden=false;
+      void loadOperations();
       try { await reloadNotes(); }
       catch (error) { lockProtected(); approvalMessage.textContent=error.message; }
     }
+    const opsRefresh=document.querySelector('#ops-refresh');
+    const opsStatus=document.querySelector('#ops-status');
+    const opsAudit=document.querySelector('#ops-audit');
+    function resetOperations() {
+      document.querySelector('#ops-rules').textContent='미확인';
+      document.querySelector('#ops-rules-source').textContent='서버 확인 전';
+      for (const id of ['ops-detection','ops-revocation','ops-recovery']) {
+        document.getElementById(id).textContent='미실행';
+      }
+      opsAudit.textContent='미실행';
+      opsStatus.textContent='서버 요약 확인 대기';
+      opsRefresh.hidden=true;
+    }
+    async function loadOperations() {
+      resetOperations();
+      if (!deviceApproved || !navigator.onLine) return;
+      const sequence=protectedSequence;
+      try {
+        const data=await api('/api/operations-summary');
+        if (!deviceApproved || !navigator.onLine || sequence!==protectedSequence) return;
+        if (data.schema!=='byteback.operations-summary.v1') throw new Error('요약 응답 형식 불일치');
+        if (!Array.isArray(data.rules?.ids) || data.rules.count!==data.rules.ids.length
+            || data.rules.source!=='repository_code') throw new Error('규칙 수 불일치');
+        document.querySelector('#ops-rules').textContent=data.rules.count+'개 정의';
+        document.querySelector('#ops-rules-source').textContent='코드: '+data.rules.ids.join(', ')+' · 실행 결과 아님';
+        // Do not mistake missing source records for zero actual incidents.
+        if (data.detection?.status!=='not_executed' || data.detection.events!==null
+            || data.revocation?.status!=='not_executed' || data.revocation.executed!==null
+            || data.recovery?.status!=='not_executed' || data.recovery.version!==null) {
+          throw new Error('확인되지 않은 서버 기록');
+        }
+        opsAudit.textContent='대조 불가 (가린 서버 기록 미연결)';
+        opsStatus.textContent='서버 요약 확인됨 · 규칙은 코드 정의, 사건·회수·복구는 미실행';
+        opsRefresh.hidden=false;
+      } catch {
+        resetOperations();
+        opsStatus.textContent='서버 요약을 확인하지 못했습니다. 미실행 상태를 유지합니다.';
+      }
+    }
+    opsRefresh.addEventListener('click', () => { void loadOperations(); });
     function resetEditor() {
       editingId = null;
       noteForm.reset();
@@ -250,6 +311,7 @@
       const approved=await checkDeviceApproval();
       if (sequence !== refreshSequence || !approved || !navigator.onLine) return;
       panel.hidden=false;
+      void loadOperations();
       try {
         await reloadNotes();
       } catch (error) {
