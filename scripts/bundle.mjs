@@ -94,7 +94,20 @@ try {
     identityProvider: config.identityProvider ?? null, allowedRoutes: config.allowedRoutes ?? [],
     originalApiUrl: config.originalApiUrl ?? null, restoreRoute: config.restoreRoute ?? null,
   };
-  if (secretPattern.test(JSON.stringify(bundle))) fail('제출 묶음에 비밀값 또는 연락처로 보이는 내용이 있습니다.');
+  // Reject device-signing material and key-like values even when nested in
+  // explanation/attack observations. Never print the matched material.
+  const keyNames = /(?:device|install|signing|private)[_-]?(?:private[_-]?)?(?:key|secret|token)|(?:private|secret)[_-]?(?:device|install)[_-]?(?:key|token)/iu;
+  const keyMaterial = /-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:device|installation|signing|private)[_-]?(?:key|secret|token)\s*[:=]\s*[^,;\\s]{12,}/iu;
+  const hasSensitiveField = value => {
+    if (!value || typeof value !== 'object') return false;
+    if (Array.isArray(value)) return value.some(hasSensitiveField);
+    return Object.entries(value).some(([name, field]) =>
+      keyNames.test(name) || (field && typeof field === 'object' && hasSensitiveField(field)));
+  };
+  if (hasSensitiveField(bundle) || keyMaterial.test(JSON.stringify(bundle))
+      || secretPattern.test(JSON.stringify(bundle))) {
+    fail('제출 묶음에 기기 키 또는 비밀값 의심 항목이 있어 생성을 중단했습니다.');
+  }
   mkdirSync(join(root, 'artifacts'), { recursive: true });
   const output = join(root, 'artifacts', 'submission.json');
   writeFileSync(output, `${JSON.stringify(bundle, null, 2)}\n`, { encoding: 'utf8', flag: 'w' });
