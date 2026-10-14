@@ -51,8 +51,8 @@ export function decide(alert) {
     reason = PATTERNS.startupFolder;
   } else if ((t1543 || t1053)
       && /예약 작업|시작 항목|시작 폴더 변경|서비스 설명|임시 폴더|서비스가 한 번/.test(description)
-      && !/기존 |서명된 채로|그대로입니다|업데이트 예약|복사를 마쳤습니다/.test(description)) {
-    // Uncertain change: warn rather than block.
+      && !/기존 |서명된 채로|업데이트 예약|복사를 마쳤습니다/.test(description)) {
+    // Changed service description is still ambiguous even if executable stayed\n    // unchanged; unchanged executable alone does not make the event normal.
     confidence = 0.56;
     reason = PATTERNS.uncertain;
   }

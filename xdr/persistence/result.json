@@ -64,8 +64,8 @@
     },
     {
       "alertId": "ps-11",
-      "action": "record",
-      "confidence": 0.12,
+      "action": "alert",
+      "confidence": 0.56,
       "reason": "독립 악용 근거 없는 변경은 경고 또는 기록"
     },
     {
@@ -149,7 +149,7 @@
   ],
   "counts": {
     "block": 8,
-    "alert": 7,
-    "record": 9
+    "alert": 8,
+    "record": 8
   }
 }
