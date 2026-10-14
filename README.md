@@ -1,6 +1,6 @@
-# BYTE BACK 방어전 자료실 · 11단계
+# BYTE BACK 방어전 자료실 · 12단계
 
-> 현재 기준: **11단계 저장점 (2026-10-14)**. 아래의 2단계 검증 기록은 당시 이력이며 현재 동작 설명이 아닙니다.
+> 현재 기준: **12단계 저장점 (2026-10-14)**. 아래의 2단계 검증 기록은 당시 이력이며 현재 동작 설명이 아닙니다.
 
 ## 현재 구현 (GitHub `main` 코드 기준)
 - `public/index.html`에서 Supabase Auth 이메일·비밀번호 로그인과 로그아웃 화면을 제공하고 로그인 상태에 따라 가상 메모 목록·추가·수정·삭제 UI를 표시합니다.
@@ -8,7 +8,7 @@
 - `GET /api/notes`는 서버가 검증한 사용자 ID의 `owner_id`에 해당하는 메모 목록을 반환합니다. `POST /api/notes`는 같은 ID를 새 메모의 `owner_id`에 저장합니다.
 - `GET /api/notes/:id`, `PUT /api/notes/:id`, `DELETE /api/notes/:id`를 구현했습니다. 외부 필드 `body`는 DB `learning_notes.content`에 대응합니다.
 - 서버 함수는 Vercel 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 사용합니다. 공개 `public/data.json`은 배포하지 않습니다.
-- `aleph.config.json`의 `step`은 **11**이며 `identityProvider`와 판정기 허용 읽기 경로 두 개가 등록되어 있습니다. 기존 메모 CRUD API 자체와 화면의 메모 목록 요청은 보존되었으나 판정기 목록 차단 정책과는 차이가 있습니다.
+- `aleph.config.json`의 `step`은 **12**이며 `identityProvider`와 판정기 허용 읽기 경로 두 개가 등록되어 있습니다. 기존 메모 CRUD API 자체와 화면의 메모 목록 요청은 보존되었으나 판정기 목록 차단 정책과는 차이가 있습니다.
 
 ## 4단계 소유자 격리 (5단계에서도 유지)
 단건 `GET`·`PUT`·`DELETE`도 서버가 검증한 사용자 ID와 DB 행의 `owner_id`를 동시에 필터링합니다. `POST`에서는 검증된 ID를 `owner_id`로 저장하며 요청 본문의 소유자 변경은 거부합니다. 수정 요청은 `title`·`body`만 허용합니다. **이 동작은 코드에서 확인했지만 실제 A/B 계정 테스트 결과는 아직 없습니다.** RLS/테이블 최소 권한 SQL은 제안만 했으며 실행 또는 적용 확인을 하지 않았습니다.
@@ -17,7 +17,7 @@
 | 항목 | 상태 |
 | --- | --- |
 | GitHub `main`의 로그인·소유자 검사 포함 CRUD 구현 | 코드 확인 |
-| `aleph.config.json`의 `step: 11`·발급자·허용 경로·원본 REST 주소 | 코드 확인 |
+| `aleph.config.json`의 `step: 12`·발급자·허용 경로·원본 REST 주소 | 코드 확인 |
 | Vercel Production 최신 배포 및 실제 주소 일치 | **미검증** (연결 권한 오류 이력) |
 | A 계정 로그인·메모 추가·수정·삭제 | **미실행 / 미검증** |
 | 로그아웃·비로그인 API 요청 HTTP 401 | **미실행 / 미검증** |
@@ -49,6 +49,13 @@
 - **검증된 사본:** 서버 전용 `RESTORE_B_NOTE_SNAPSHOT`은 가상 한 건의 `{id,owner_id,title,content,contentSha256,version,verified}`를 포함해야 합니다. 별도로 승인한 `RESTORE_B_SNAPSHOT_SHA256`과 `RESTORE_B_VERIFIED_VERSION`은 비밀 입력란에 둡니다. 버전·사본 전체 SHA-256·내용 SHA-256 불일치, 사본 누락 또는 미검증이면 쓰기를 중단합니다.
 - **실행 전 표시:** 사본 `version`과 `id`, `ownerMatched`, 내용 해시, 복원 대상 필드(`title`, `content`)는 시험 요청자가 사전 점검해야 합니다. 요청 본문에는 `{id,contentSha256,version}`을 지정하며 이외 정보·실제 메모 내용은 출력하지 않습니다.
 - **재검증:** DB 쓰기 직전에 서버에서 비공개 사본을 다시 읽어 검증하고, 대상 ID와 소유자만 갱신합니다. 다른 메모와 감사 테이블을 건드리지 않습니다. 별도 시험 DB에 대한 실제 실행과 Vercel 배포, 심판 재평가 결과는 **미실행·미검증**입니다.
+
+## 12단계 저장점 (2026-10-14)
+- **기능:** 기존 인증·소유자 격리·미승인 기기 차단, `src/decider.mjs` 판정기, `src/detect.mjs` 탐지 규칙, `api/operations-summary.js` 가린 요약, `docs/retest-41.json`의 41종 실측표 생성 절차 및 복구 실습 도구를 보존합니다.
+- **출처:** 학생 구현의 코드와 제공된 **ALEPH SDP 엔진 사용**을 README의 「재현 가능한 설치·실행·중지·복구 안내」에서 구분합니다. 엔진 자체를 학생 코드로 주장하지 않습니다.
+- **설정 대조:** `aleph.config.json`은 `step:12`로 전환하되 GitHub 주소, Vercel `publicAppUrl`, `judgeIssuer`, `identityProvider`, `allowedRoutes`, `originalApiUrl`, `restoreRoute`를 그대로 유지합니다.
+- **재현:** `npm ci`, `npm run build -- --local`, `npm run decider:test`, `npm run detect:test`, `node scripts/retest-report.mjs`. 위 명령은 로컬 점검이며 실제 심판 검증을 대신하지 않습니다.
+- **미완료:** 실제 등록 기기 증명 서비스와 서버 탐지·회수·복구 기록이 연결되지 않았습니다. 정상 기기 허용, 41종 실제 API 증거, Production 최신 배포, 심판 점수는 **미검증**입니다. `src/attack-check.mjs`는 아직 1단계 전용이므로 12단계 `npm run bundle`이 성공했다고 기록하지 않습니다. 생성물·실제 비밀값·실제 개인정보는 커밋하지 않습니다.
 
 ## 12단계: 재현 가능한 설치·실행·중지·복구 안내 (README 정리)
 
