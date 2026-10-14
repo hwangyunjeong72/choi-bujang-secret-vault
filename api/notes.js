@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { createLoginVerifier } from '../src/verify-login.mjs';
+import { deviceStatus } from '../src/device-status.mjs';
 
 const config = JSON.parse(readFileSync(new URL('../aleph.config.json', import.meta.url), 'utf8'));
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -34,6 +35,9 @@ export default async function handler(req, res) {
   // or instructor-managed storage contract yet: do not infer one from headers,
   // browser menus, request bodies, or a judge identity.
   if (!UUID.test(identity.userId)) return res.status(403).json({ error: 'ACCESS_DENIED' });
+  // Enforce registration server-side before any protected read or write.
+  if (!deviceStatus(identity).registered)
+    return res.status(403).json({ error: 'DEVICE_NOT_APPROVED' });
   // Only verified userId is accepted; client-supplied userId/role are ignored.
 
   const segments = new URL(req.url, 'https://local.invalid').pathname.split('/').filter(Boolean);
