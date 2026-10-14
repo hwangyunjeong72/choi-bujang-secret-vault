@@ -1,0 +1,26 @@
+{
+  "checkpoint": "보너스 xdr-03 저장점",
+  "moduleKey": "known-cve",
+  "baseCommit": "4720b2f99d42b796658efa80e7c821f4c869f036",
+  "execution": {
+    "command": "npm run xdr:run -- known-cve",
+    "environment": "existing local reconstructed test copy; fresh github clone failed DNS",
+    "result": "completed",
+    "counts": {
+      "block": 8,
+      "alert": 8,
+      "record": 8
+    },
+    "fixtureAlerts": 24,
+    "normalEventsBlocked": 0
+  },
+  "repositoryResult": {
+    "path": "xdr/known-cve/result.json",
+    "countsCheckedAgainstDecisions": true,
+    "identicalToRerun": true
+  },
+  "limitations": [
+    "The rerun was not performed in a freshly cloned GitHub checkout.",
+    "No ALEPH judge result or production SDP rule deployment was verified."
+  ]
+}
