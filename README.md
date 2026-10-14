@@ -361,3 +361,10 @@ node scripts/retest-report.mjs
 - 가상 경보 24건: `block` 8건, `alert` 7건, `record` 9건. 정상 경보 `ps-17`~`ps-24`의 `block`은 0건입니다.
 - 기존 `xdr/persistence/result.json`의 판정·건수가 재실행 값과 일치해 결과 데이터 변경은 필요하지 않았습니다. XDR 탐지 코드는 변경하지 않았습니다.
 - 재현 명령: `npm run xdr:run -- persistence` → `cat xdr/persistence/result.json`. 이는 ALEPH 심판 판정이나 실제 ZTNA 엔진 거부 규칙 설치의 증거가 아닙니다.
+
+
+## 보너스 xdr-05 저장점 (2026-10-14)
+- `npm run xdr:run -- privilege`를 Node.js v22.16.0 로컬 재현 폴더 `/mnt/data/xdr05-run`에서 재실행했습니다. 이 폴더는 Git 체크아웃이 아니므로 원본 GitHub 작업 폴더에서 실행한 것으로 주장하지 않습니다.
+- 수업용 경보 26건 판정 결과: `block` 9건, `alert` 8건, `record` 9건. 정상 경보 `pv-18`~`pv-26` 모두 `record`이며 잘못 차단한 정상 경보는 0건입니다.
+- 로컬 실행으로 갱신한 `xdr/privilege/result.json`과 GitHub `main`에 이미 커밋된 결과의 판정 내용이 일치하므로 기존 JSON은 유지했습니다. 보너스 판정기와 ZTNA 판정기 규칙은 수정하지 않았습니다.
+- 다시 실행: 저장소 루트에서 `npm run xdr:run -- privilege` 후 `cat xdr/privilege/result.json`. 수업용 가상 경보 검증이며 실제 ZTNA 차단이나 심판 합격 확인은 아닙니다.
