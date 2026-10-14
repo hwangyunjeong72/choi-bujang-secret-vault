@@ -1,0 +1,35 @@
+{
+  "schema": "byteback.xdr.known-cve.patterns.v1",
+  "scope": "수업용 Wazuh known-cve 경보의 방어적 분류 참고 자료이며 실제 공격 실행에 사용하지 않음",
+  "references": [
+    "CVE-2021-44228 (Log4Shell) 형태 요청",
+    "MITRE ATT&CK T1190 (Exploit Public-Facing Application)"
+  ],
+  "patterns": [
+    {
+      "name": "요청 머리글의 JNDI 원격 조회 구문",
+      "condition": "data.useragent 등 실제 수집된 요청 머리글에 완전한 ${jndi:...} 형태의 원격 조회 표현식이 존재한다. 취약점 명칭만 존재하는 경우는 제외한다.",
+      "evidence": "known-cve.json의 kc-01·kc-04·kc-07·kc-08은 머리글의 원격 조회 형태와 T1190 규칙 정보를 함께 제시한다."
+    },
+    {
+      "name": "URL 인자 내 JNDI 원격 조회 구문",
+      "condition": "data.url의 실제 요청 인자에 완전한 ${jndi:...} 형태의 원격 조회 표현식이 존재한다. 'jndi' 또는 CVE 이름 검색만으로는 일치시키지 않는다.",
+      "evidence": "known-cve.json의 kc-02·kc-03·kc-05·kc-06·kc-08에서 인자 내 조회 형태가 나타나며 MITRE T1190과 연결된다."
+    },
+    {
+      "name": "동일 출발 주소의 반복적 악용 형태",
+      "condition": "완전한 JNDI 원격 조회 구문이 먼저 확인되고 data.count가 2 이상인 경보만 반복 시도로 본다. srcip 또는 count만으로는 공격으로 판정하지 않는다.",
+      "evidence": "known-cve.json의 kc-03(6회)·kc-04(4회)·kc-06(8회)은 CVE-2021-44228형 구문이 동반된 반복 요청이다."
+    },
+    {
+      "name": "취약점 점검 흔적과 악용 구문의 결합",
+      "condition": "rule.description에 알려진 취약점 점검 흔적이 명시되어 있고, data.url 또는 data.useragent에 완전한 JNDI 조회 형태가 함께 있는 경우에만 복합 징후로 본다.",
+      "evidence": "known-cve.json의 kc-05는 취약점 점검 흔적과 CVE-2021-44228형 원격 조회 구문이 동시에 존재한다."
+    },
+    {
+      "name": "조회 구문 없는 취약점 검색·도구 이름",
+      "condition": "CVE-2021-44228 문구 검색, 'jndi' 단어, 취약점 문서 조회 또는 점검 도구와 유사한 이름만 있고 완전한 원격 조회 구문이 없으면 악용 확정 신호로 삼지 않는다.",
+      "evidence": "known-cve.json의 kc-09~kc-16은 명칭·단어·도구 흔적만으로 공격을 확정할 수 없는 대조 경보다."
+    }
+  ]
+}
