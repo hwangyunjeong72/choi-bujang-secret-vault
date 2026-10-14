@@ -368,3 +368,10 @@ node scripts/retest-report.mjs
 - 수업용 경보 26건 판정 결과: `block` 9건, `alert` 8건, `record` 9건. 정상 경보 `pv-18`~`pv-26` 모두 `record`이며 잘못 차단한 정상 경보는 0건입니다.
 - 로컬 실행으로 갱신한 `xdr/privilege/result.json`과 GitHub `main`에 이미 커밋된 결과의 판정 내용이 일치하므로 기존 JSON은 유지했습니다. 보너스 판정기와 ZTNA 판정기 규칙은 수정하지 않았습니다.
 - 다시 실행: 저장소 루트에서 `npm run xdr:run -- privilege` 후 `cat xdr/privilege/result.json`. 수업용 가상 경보 검증이며 실제 ZTNA 차단이나 심판 합격 확인은 아닙니다.
+
+
+## 보너스 xdr-06 저장점 (2026-10-14)
+- `npm run xdr:run -- exfiltration`을 Node.js v22.16.0 로컬 재현 폴더 `/mnt/data/xdr06-run`에서 다시 실행해 결과를 확인했습니다. GitHub 원본 저장소는 `Could not resolve host: github.com`으로 복제하지 못했으므로 원본 체크아웃에서 실행한 것으로 주장하지 않습니다.
+- 수업용 경보 30건 결과: `block` 10건, `alert` 8건, `record` 12건. 정상 경보 `ex-21`~`ex-30`의 `block`은 0건입니다.
+- 재실행 결과가 `xdr/exfiltration/result.json`의 기존 판정 결과와 일치하여 JSON 내용 변경은 필요하지 않았습니다. 기존 XDR·ZTNA 판정기와 경보 원본은 보존했습니다.
+- 다시 실행: `npm run xdr:run -- exfiltration` 후 `cat xdr/exfiltration/result.json`. 로컬 재현 실행은 ALEPH 심판 합격이나 실제 ZTNA 차단 검증이 아닙니다.
