@@ -5,3 +5,4 @@ bundle-notes.json
 node_modules/
 public/aleph.json
 private-results.json
+xdr/alerts.log
