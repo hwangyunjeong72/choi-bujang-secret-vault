@@ -61,6 +61,14 @@ export function decide(alert) {
   } else if (t1048 && bytes >= 50000000
       && /처음 보는 목적지 두 곳으로 같은 압축 파일이 나갔습니다/.test(description)) {
     confidence = 0.96; reason = PATTERNS.multipleDestinations;
+  } else if (t1048 && bytes === 0
+      && /전송이 실패.+목적지는 처음 봅니다/.test(description)) {
+    // Failed delivery to an unfamiliar destination is suspicious, not a leak.
+    confidence = 0.55; reason = PATTERNS.uncertain;
+  } else if (t1041 && count >= 2 && bytes > 0
+      && /명령 통로에 짧은 자료 이름이.+큰 파일은 아닙니다/.test(description)) {
+    // Repeated small C2-channel signals warrant an alert, never a block.
+    confidence = 0.56; reason = PATTERNS.uncertain;
   } else if ((t1041 || t1048) && bytes >= 100000
       && /파일|자료|전송|목적지|주소|백업|압축/.test(description)
       && !/수업 자료 주소로 작은 동기화가 끝났습니다/.test(description)) {

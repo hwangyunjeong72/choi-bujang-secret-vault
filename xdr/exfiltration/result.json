@@ -106,14 +106,14 @@
     },
     {
       "alertId": "ex-18",
-      "action": "record",
-      "confidence": 0.12,
+      "action": "alert",
+      "confidence": 0.55,
       "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
     },
     {
       "alertId": "ex-19",
-      "action": "record",
-      "confidence": 0.12,
+      "action": "alert",
+      "confidence": 0.56,
       "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
     },
     {
@@ -185,7 +185,7 @@
   ],
   "counts": {
     "block": 10,
-    "alert": 8,
-    "record": 12
+    "alert": 10,
+    "record": 10
   }
 }
