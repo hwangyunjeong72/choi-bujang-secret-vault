@@ -26,7 +26,7 @@ export default async function handler(req,res) {
   if (!identity) return deny(res,401,'INVALID_LOGIN');
   if (!deviceStatus(identity).registered) return deny(res,403,'DEVICE_NOT_APPROVED');
   // Do not expose event subjects, notes, recovery IDs, raw logs, tokens or secrets.
-  // There is no verified telemetry/recovery-state API. Null means NOT MEASURED.
+  // No authenticated ALEPH SDP redacted event log is connected. Null means NOT MEASURED.
   const rules=RULE_IDS.filter(id=>/^[a-z][a-z0-9_]{0,63}$/.test(id));
   return res.status(200).json({
     schema:'byteback.operations-summary.v1',
@@ -34,6 +34,6 @@ export default async function handler(req,res) {
     detection:{source:'server_telemetry_not_connected',status:'not_executed',events:null,proposals:null},
     revocation:{source:'revocation_service_not_connected',status:'not_executed',executed:null},
     recovery:{source:'verified_restore_log_not_connected',status:'not_executed',version:null},
-    serverRecord:{redacted:true,telemetryCompared:false,reason:'no_verified_server_records'}
+    serverRecord:{redacted:true,telemetryCompared:false,status:'not_executed',reason:'no_verified_server_records'}
   });
 }

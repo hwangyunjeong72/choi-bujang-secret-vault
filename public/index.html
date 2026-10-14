@@ -234,8 +234,10 @@
             || data.recovery?.status!=='not_executed' || data.recovery.version!==null) {
           throw new Error('확인되지 않은 서버 기록');
         }
-        opsAudit.textContent='대조 불가 (가린 서버 기록 미연결)';
-        opsStatus.textContent='서버 요약 확인됨 · 규칙은 코드 정의, 사건·회수·복구는 미실행';
+        // The rule count is source-code metadata, not a measured allow/deny total.
+        // No redacted verified server event ledger is available for correlation.
+        opsAudit.textContent='미실행 (가린 서버 기록 없음 · 수치 일치 미검증)';
+        opsStatus.textContent='코드상 규칙 정의만 확인됨 · 실제 서버 판정/탐지/회수/복구 결과 미실행';
         opsRefresh.hidden=false;
       } catch {
         resetOperations();
