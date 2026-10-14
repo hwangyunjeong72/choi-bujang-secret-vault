@@ -76,13 +76,20 @@
       networkStatus.textContent = navigator.onLine
         ? "온라인: 네트워크에 연결된 것으로 표시됩니다. 실제 서버 연결은 별도로 확인해야 합니다."
         : "오프라인: 비공개 자료 요청을 사용할 수 없습니다. 연결 후 다시 로그인 상태를 확인하세요.";
+      if (!navigator.onLine) lockProtected();
     }
     window.addEventListener("online", updateNetworkStatus);
     window.addEventListener("offline", updateNetworkStatus);
-    updateNetworkStatus();
+    // Do not persist newly issued tokens. Remove only the legacy auth entry
+    // for this project, without reading or printing its value.
+    const legacyAuthKey='sb-nfhfbhignmrgutjlxpvw-auth-token';
+    for (const getStorage of [() => localStorage, () => sessionStorage]) {
+      try { getStorage().removeItem(legacyAuthKey); } catch { /* unavailable */ }
+    }
     const client = createClient(
       'https://nfhfbhignmrgutjlxpvw.supabase.co',
-      'sb_publishable__2PHW4q7ozgVNusOAIjgJA_MbAdtCpc'
+      'sb_publishable__2PHW4q7ozgVNusOAIjgJA_MbAdtCpc',
+      { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
     );
     const list = document.querySelector('#notes');
     const form = document.querySelector('#login-form');
@@ -103,8 +110,15 @@
     let editingId = null;
     let currentNotes = [];
     let refreshSequence = 0;
+    let protectedSequence = 0;
+    updateNetworkStatus();
+    window.addEventListener('pagehide', () => lockProtected());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) lockProtected();
+    });
 
     async function api(path, method = 'GET', data) {
+      if (!navigator.onLine) throw new Error('오프라인에서는 보호 자료를 열 수 없습니다.');
       const { data: { session } } = await client.auth.getSession();
       if (!session?.access_token) throw new Error('로그인이 필요합니다.');
       const response = await fetch(path, {
@@ -119,6 +133,7 @@
     }
 
     function lockProtected() {
+      ++protectedSequence;
       deviceApproved=false;
       currentNotes=[];
       panel.hidden=true;
@@ -128,6 +143,7 @@
     }
     async function checkDeviceApproval() {
       lockProtected();
+      const sequence=protectedSequence;
       const { data: { session } } = await client.auth.getSession();
       if (!session?.access_token) {
         approvalStatus.textContent="로그인 후 기기 승인을 요청할 수 있습니다.";
@@ -135,6 +151,7 @@
       }
       try {
         const result=await api('/api/device-approval');
+        if (sequence!==protectedSequence || !navigator.onLine) return false;
         if (result.registered !== true) {
           approvalStatus.textContent="기기 미승인: 보호 자료 접근이 차단됩니다.";
           return false;
@@ -160,7 +177,7 @@
     refreshApproval.addEventListener('click', () => { void showCurrentApproval(); });
     async function showCurrentApproval() {
       const ok=await checkDeviceApproval();
-      if (!ok) return;
+      if (!ok || !navigator.onLine) return;
       panel.hidden=false;
       try { await reloadNotes(); }
       catch (error) { lockProtected(); approvalMessage.textContent=error.message; }
@@ -209,9 +226,11 @@
       if (!notes.length) list.textContent = '저장된 가상 메모가 없습니다.';
     }
     async function reloadNotes() {
-      if (!deviceApproved) throw new Error('기기 승인 확인이 필요합니다.');
-      const result = await api('/api/notes');
-      currentNotes = result.notes;
+      if (!deviceApproved || !navigator.onLine) throw new Error('기기 승인과 온라인 연결이 필요합니다.');
+      const sequence=protectedSequence;
+      const result=await api('/api/notes');
+      if (!deviceApproved || !navigator.onLine || sequence!==protectedSequence) return;
+      currentNotes=result.notes;
       renderNotes(currentNotes);
     }
     async function show(session) {
@@ -229,7 +248,7 @@
         return;
       }
       const approved=await checkDeviceApproval();
-      if (sequence !== refreshSequence || !approved) return;
+      if (sequence !== refreshSequence || !approved || !navigator.onLine) return;
       panel.hidden=false;
       try {
         await reloadNotes();
@@ -241,7 +260,7 @@
     noteForm.addEventListener('submit', async event => {
       event.preventDefault();
       noteMessage.textContent = '';
-      if (!deviceApproved) { lockProtected(); noteMessage.textContent='기기 승인이 필요합니다.'; return; }
+      if (!deviceApproved || !navigator.onLine) { lockProtected(); noteMessage.textContent='기기 승인과 온라인 연결이 필요합니다.'; return; }
       const save = document.querySelector('#note-save');
       save.disabled = true;
       try {
@@ -272,6 +291,7 @@
     });
     logout.addEventListener('click', async () => {
       errorBox.textContent = '';
+      lockProtected();
       const { error } = await client.auth.signOut();
       if (error) errorBox.textContent = '로그아웃 실패: ' + error.message;
     });
