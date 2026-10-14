@@ -353,3 +353,11 @@ node scripts/retest-report.mjs
 - 남은 약점: 단건 GET·PUT·DELETE의 소유자 검사가 없으므로 메모 ID를 아는 B가 접근할 수 있습니다. 4단계에서 수정해야 하며 그때까지 가상 자료만 사용합니다.
 - 다시 실행: `npm run build -- --local`은 정적 빌드 점검입니다. `npm run bundle`은 깨끗한 Git 작업 폴더, 비공개 `bundle-notes.json`, 단계별 `src/attack-check.mjs` 자기 점검이 필요합니다. 현재 `attack-check.mjs`는 1단계용이며 3단계 점검을 아직 구현하지 않았습니다.
 - 보안: 비밀번호·JWT·서버 키·실제 메모 내용은 GitHub에 저장하지 않습니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
+
+
+## 보너스 xdr-04 저장점 (2026-10-14)
+- `npm run xdr:run -- persistence`를 Node.js 22 로컬 재현 작업 폴더에서 실행해 `xdr/persistence/result.json` 형식의 결과를 생성·대조했습니다.
+- GitHub 원본 저장소 새 복제는 `Could not resolve host: github.com`으로 실패하여 원본 경보의 판정 관련 필드와 판정기·실행기 코드를 재현한 로컬 사본을 사용했습니다. 따라서 원본 저장소 체크아웃에서 실행되었다고 주장하지 않습니다.
+- 가상 경보 24건: `block` 8건, `alert` 7건, `record` 9건. 정상 경보 `ps-17`~`ps-24`의 `block`은 0건입니다.
+- 기존 `xdr/persistence/result.json`의 판정·건수가 재실행 값과 일치해 결과 데이터 변경은 필요하지 않았습니다. XDR 탐지 코드는 변경하지 않았습니다.
+- 재현 명령: `npm run xdr:run -- persistence` → `cat xdr/persistence/result.json`. 이는 ALEPH 심판 판정이나 실제 ZTNA 엔진 거부 규칙 설치의 증거가 아닙니다.
