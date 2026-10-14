@@ -1,0 +1,191 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "exfiltration",
+  "decisions": [
+    {
+      "alertId": "ex-01",
+      "action": "block",
+      "confidence": 0.98,
+      "reason": "짧은 시간 다량 자료의 낯선 목적지 전송"
+    },
+    {
+      "alertId": "ex-02",
+      "action": "block",
+      "confidence": 0.97,
+      "reason": "수업 시간 밖 압축 파일 반출"
+    },
+    {
+      "alertId": "ex-03",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "같은 목적지 대용량 반복 전송"
+    },
+    {
+      "alertId": "ex-04",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "낯선 포트의 자료 다건 전송"
+    },
+    {
+      "alertId": "ex-05",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "낯선 목적지로 메모 묶음 유출"
+    },
+    {
+      "alertId": "ex-06",
+      "action": "block",
+      "confidence": 0.97,
+      "reason": "비업무 시간 반복 외부 전송"
+    },
+    {
+      "alertId": "ex-07",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "압축 파일 연속 외부 업로드"
+    },
+    {
+      "alertId": "ex-08",
+      "action": "block",
+      "confidence": 0.99,
+      "reason": "짧은 시간 자료실 전체 외부 복사"
+    },
+    {
+      "alertId": "ex-09",
+      "action": "block",
+      "confidence": 0.97,
+      "reason": "명령 통로의 대용량 반복 유출"
+    },
+    {
+      "alertId": "ex-10",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "동일 압축 파일의 다중 외부 목적지 반출"
+    },
+    {
+      "alertId": "ex-11",
+      "action": "alert",
+      "confidence": 0.56,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-12",
+      "action": "alert",
+      "confidence": 0.56,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-13",
+      "action": "alert",
+      "confidence": 0.56,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-14",
+      "action": "alert",
+      "confidence": 0.56,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-15",
+      "action": "alert",
+      "confidence": 0.56,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-16",
+      "action": "alert",
+      "confidence": 0.56,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-17",
+      "action": "alert",
+      "confidence": 0.56,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-18",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-19",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-20",
+      "action": "alert",
+      "confidence": 0.56,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-21",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-22",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-23",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-24",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-25",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-26",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-27",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-28",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-29",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    },
+    {
+      "alertId": "ex-30",
+      "action": "record",
+      "confidence": 0.12,
+      "reason": "추가 악용 증거 없는 단발·실패·소량 전송"
+    }
+  ],
+  "counts": {
+    "block": 10,
+    "alert": 8,
+    "record": 12
+  }
+}
