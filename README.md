@@ -50,6 +50,75 @@
 - **실행 전 표시:** 사본 `version`과 `id`, `ownerMatched`, 내용 해시, 복원 대상 필드(`title`, `content`)는 시험 요청자가 사전 점검해야 합니다. 요청 본문에는 `{id,contentSha256,version}`을 지정하며 이외 정보·실제 메모 내용은 출력하지 않습니다.
 - **재검증:** DB 쓰기 직전에 서버에서 비공개 사본을 다시 읽어 검증하고, 대상 ID와 소유자만 갱신합니다. 다른 메모와 감사 테이블을 건드리지 않습니다. 별도 시험 DB에 대한 실제 실행과 Vercel 배포, 심판 재평가 결과는 **미실행·미검증**입니다.
 
+## 12단계: 재현 가능한 설치·실행·중지·복구 안내 (README 정리)
+
+> **검사 기준 커밋:** `e3bb430866718c781ad2d1b987c8d2a53b081f71` (41종 재검증표 절차를 추가한 커밋). 아래 내용은 해당 커밋의 코드와 파일 구성에 대한 사용 설명이다. GitHub 코드 확인과 운영 API 실측은 서로 다르며, Vercel Production 배포·실제 승인 기기의 허용·41종 시험 결과는 별도 검증이 필요하다. 이 README 수정 자체는 다음 커밋으로 기록한다.
+
+### 1. 학생 구현과 제공 엔진 출처
+
+| 구성 요소 | 학생 저장소의 책임과 파일 | 제공/외부 구성 및 출처 |
+| --- | --- | --- |
+| 판정기 | `src/decider.mjs`: `decide(request)`, `RULE_IDS` (`device_registered`, `step_up_required`) 및 구역별 허용·거부 판정 | **ALEPH SDP 엔진 사용**. 반 엔진이 검증한 신원·기기·경로·최근 사건을 정해진 요청 계약으로 전달하고 최종 접근을 통제한다. 인터페이스: `docs/DECIDER_REQUEST.md`. 엔진 자체는 이 저장소에서 구현하거나 배포하지 않는다. |
+| 탐지 규칙 | `src/detect.mjs`: 가상 GET 사건을 대상으로 10분 내 같은 가명 주체의 120건 초과 조회를 `propose_revocation`으로 제안 | 검증된 실제 접속 사건의 수집·제공 및 기기 회수 집행은 별도 **ALEPH SDP 엔진**/운영 서비스 몫. `docs/DETECT_EVENTS.md`는 로컬 연습 계약이다. 제안만으로 회수되지는 않는다. |
+| 접속 앱 | `public/index.html`, `public/manifest.webmanifest`, `public/app-icon.svg`; 로그인 화면, 설치형 웹앱 안내, 기기 승인 요청·상태 표시 | 브라우저의 웹앱 설치 기능, Supabase Auth 및 별도 신뢰된 기기 등록·증명 서비스가 필요하다. 설치·로그인·버튼 클릭은 기기 승인이 아니다. |
+| 자료실 | `api/notes.js`, `src/verify-login.mjs`, `api/device-approval.js`, `src/device-status.mjs`: 인증과 소유자 필터, 미승인 접근 차단 | Supabase Auth/DB를 사용하고 Vercel에서 서버 함수를 호스팅한다. 현재 별도 등록 기기 증명 서비스 미연결로 모든 기기가 거부된다. |
+| 탈환 작전실 | `api/operations-summary.js`, `scripts/retest-report.mjs`, `docs/retest-41.json`: 가린 요약과 41종 증거표 생성 | 실제 탐지 사건·회수·복구 기록을 제공할 운영 경로는 미연결이다. 코드 정의 수를 실측 성공 수로 표기하지 않는다. |
+| 복구 | `scripts/preview-policy-restore.mjs`, `scripts/restore-test-policy.mjs`, `api/restore-note.js`: 시험 정책 미리보기/시험 사본 복구 | 검증된 이전 사본, 시험용 격리 저장소와 승인된 신원이 필요하다. 운영 정책 복구와 실제 엔진 집행 기능은 포함하지 않는다. |
+
+### 2. 준비·설치 (Node.js 22 이상)
+
+다음 명령은 **로컬 또는 Vercel 샌드박스에서 저장소 작업 폴더를 준비하는 예시**다. 이미 같은 이름의 폴더가 있으면 새로 복제하지 말고 해당 폴더에서 시작한다. 기존 미커밋 작업을 삭제하지 않는다.
+
+```bash
+git clone https://github.com/hwangyunjeong72/choi-bujang-secret-vault.git
+cd choi-bujang-secret-vault
+git status
+git log -1
+node --version
+npm ci
+```
+
+검사 기준 코드를 그대로 재현하려면 **별도 시험용 작업 사본**에서만 `git checkout e3bb430866718c781ad2d1b987c8d2a53b081f71`로 이동한다. 운영 폴더의 미커밋 변경이 있는 상태에서는 이동하지 않는다. 최신 브랜치를 사용할 때는 현재 SHA를 기록해 기준 커밋과 구분한다.
+
+서버 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`는 **Vercel 프로젝트 Settings → Environment Variables**에서만 별도 설정한다. 실제 인증 설정은 `aleph.config.json`의 공개 발급자 정보와 맞춰 확인하되 `judgeIssuer`를 임의로 수정하지 않는다. 개인키·서버 키·로그인 토큰·시험 계정 비밀번호·가상 메모 본문은 Git/README/제출 파일에 저장하지 않는다. `SUPABASE_SECRET_KEY`를 공개 웹 파일에 넣지 않는다.
+
+### 3. 실행과 점검 순서
+
+```bash
+npm run build -- --local
+npm run decider:test
+npm run detect:test
+npm run fixture:7
+node --test test/policy-restore-preview.test.mjs
+node --test test/restore-test-policy.test.mjs
+node scripts/retest-report.mjs
+```
+
+- `build -- --local`은 공개 `data.json`을 제거하는 로컬 빌드 점검이다. 앱 전체의 보호 요청 성공을 검증하지 않는다.
+- `decider:test`, `detect:test`, `fixture:7`은 **가상 요청 연습**이며 ALEPH SDP 엔진의 운영 판정이나 실제 회수 집행이 아니다.
+- `retest-report.mjs`는 `artifacts/retest-41.md`를 생성하지만 **API 요청을 보내지 않는다**. 실측 증거가 없으면 41종 모두 미실행이다.
+- 시험 기관이 허용한 격리 환경에서 각 정상·금지 요청을 실제로 보낸 뒤, 비공개 `private-results.json`에 시험 ID, 실제 HTTP 코드 또는 엔진 결정, 요청 ID, UTC 시각만 남긴다. `node scripts/retest-report.mjs private-results.json`으로 동일 형식의 단일 표를 재생성한다. 수치 일치는 서버 측 가린 기록과 재대조해야 확정할 수 있다.
+- 원격 배포는 Vercel에서 GitHub `main`의 **실제 배포된 커밋 SHA**를 확인하고 `https://choi-bujang-secret-vault.vercel.app/` 및 보호 API 응답을 확인한다. 배포가 이루어졌다고 추정하지 않는다. 설치형 웹앱은 manifest를 쓰며 **별도 실행 프로그램 설치는 필요하지 않다**.
+
+### 4. 중지 (자료·비밀값 유지)
+
+- 로컬에서 명령이 실행 중이면 **Ctrl+C**로 중지한다. 위 시험 명령은 실행 후 스스로 종료된다. 브라우저 앱은 로그아웃한 다음 탭을 닫는다.
+- 운영 공개를 멈춰야 한다면 **Vercel의 공식 프로젝트/배포 설정**에서 접근을 제한하거나 배포를 비활성화한다. 정확한 동작·영향을 확인하고 진행해야 하며 `git reset --hard`나 Supabase 테이블 삭제로 중지하지 않는다.
+- 접근 차단 확인 시 비로그인 보호 요청은 HTTP 401, 미승인 기기는 HTTP 403이 예상된다. 현재 정상 등록 기기 검증 서비스가 미연결이므로 정상 접근 HTTP 200을 확인했다고 주장하지 않는다.
+
+### 5. 안전한 복구 및 재개
+
+1. 먼저 `git status`와 `git log -1`로 현재 코드와 미커밋 변경을 확인한다. 다른 작업은 보존한다. GitHub의 **검증된 커밋**을 기준으로 비교하고 필요하면 별도 브랜치에서만 파일 복원을 검토한다.
+2. 운영 정책이나 실제 DB에 접근하기 전에 **격리된 시험 환경**과 침해 이전에 독립적으로 승인된 비공개 사본을 준비한다. 사본 버전·출처·무결성 SHA-256을 검증한다. 파일 이름만 `verified`여도 신뢰하지 않는다.
+3. `node scripts/preview-policy-restore.mjs <검증된-안전사본.json> <test-policy.json>`을 실행해 버전과 변경될 `allowedRoutes`·`policyRules`·`step`만 미리 확인한다. **미리보기는 어떤 정책도 수정하지 않는다.**
+4. 미리보기와 독립적인 승인 절차를 거친 경우에만 `node scripts/restore-test-policy.mjs <검증된-안전사본.json> <test-policy.json> --apply <확인버전> <안전사본SHA256> <현재시험정책SHA256>`을 시험 폴더에서 실행한다. 변경 직전 버전과 해시가 달라지면 멈춘다. 이 도구는 **로컬 `test-policy.json`만** 수정하며 실제 Vercel/Supabase 운영 정책을 복구하지 않는다.
+5. 메모 단건 복구 `POST /api/restore-note`는 **검증된 심판 가상 B 신원과 별도 시험 DB·비공개 사본 설정이 준비된 경우에만** 사용하는 실습 경로다. 실제 운영 메모를 대상으로 무작정 호출하지 않는다. 설정/검증 실패 시 복원 중단이 정상이다.
+6. 변경 후에는 먼저 판정기·탐지기 로컬 시험, 다음으로 41종 정상·금지 요청의 실제 API 결과와 요청 ID·UTC 확인 시각을 수집하고, 기존 자료·감사 기록·비교 대상 정책의 전후 차이를 대조한다. 허용·거부 모두 실측되어야 재개를 판단할 수 있다.
+
+### 6. 제출·비밀값 취급
+
+`npm run bundle`은 깨끗한 Git 작업 트리, 비공개 로컬 `bundle-notes.json`, 현재 단계에 맞는 `src/attack-check.mjs` 점검 구현이 필요하다. 현재 점검 스크립트는 1단계 전용이므로 **11/12단계 묶음 성공은 확인되지 않았으며 추가 작업이 필요하다**. 생성되는 `artifacts/submission.json`과 `bundle-notes.json`은 `.gitignore`로 제외되어야 하며 Git에 커밋하지 않는다. ZIP을 만들더라도 민감한 키/토큰/메모 본문/원본 사건을 포함하지 않는다. 공개 코드와 제공 엔진을 하나의 학생 제작 엔진으로 소개하지 않는다.
+
 ## 12단계 진행 중: 1~11단계 정상·금지 요청 41종 증거표 (전 항목 미실행)
 - `docs/retest-41.json`에 1~11단계의 정상·금지 요청 **41종 시험 계획**을 기록했습니다. 이 41종은 기존 코드에서 정리한 계획으로 심판의 비공개 정답표와 일치한다고 검증된 목록은 아닙니다.
 - `node scripts/retest-report.mjs`를 실행하면 `artifacts/retest-41.md`에 ID, 단계, 구분, 시험 요청, 기대 결과, 실제 API/엔진 결과, 요청 ID, 확인 시각, 상태를 **한 표**로 작성합니다. 실행 전 41종은 모두 `미실행`입니다. 실제 HTTP/엔진 요청을 보내지는 않습니다.
